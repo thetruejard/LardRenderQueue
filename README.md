@@ -1,6 +1,6 @@
 # LardRenderQueue
 
-The Lard Render Queue is a WIP python script to automatically queue and run headless renders of Blender projects (`.blend` files).
+The Lard Render Queue is a WIP Python script to automatically queue and run headless renders of Blender projects (`.blend` files).
 
 Note that the script is currently under development and is not usable in its current state.
 
@@ -20,7 +20,11 @@ This is a list of features to be implemented by the time of the script's first u
 
 ## Getting Started
 
-To use the script, run the following:
+The script is developed with Python 3.7 but may work with earlier versions.
+
+Blender must be installed and in your `PATH` such that it is accessible via the command line. bpy updates along with Blender so it is recommended to use a relatively recent version.
+
+To run the script, run the following:
 
     python repo_path/RenderQueue
 
@@ -32,4 +36,4 @@ The script is developed in Visual Studio, and thus includes solution and project
 
 [Blender Website](https://www.blender.org)
 
-Neither Blender nor the Blender Foundation are in any way affiliated with this project.
+The Blender Foundation does not endorse this project in any way.
