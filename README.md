@@ -30,6 +30,6 @@ The script is developed in Visual Studio, and thus includes solution and project
 
 ### External Links
 
-[Blender Website](www.blender.org)
+[Blender Website](https://www.blender.org)
 
 Neither Blender nor the Blender Foundation are in any way affiliated with this project.
