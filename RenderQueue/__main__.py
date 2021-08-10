@@ -2,8 +2,9 @@
 import os
 import sys
 
-import BgdThread as bgd
-import MsgQueue as msgq
+import bgdthread as bgd
+import msgqueue as msgq
+import taskfile
 
 '''
 __main__.py
@@ -104,6 +105,7 @@ def help(args):
 <filepath> may be quoted but does not have to be, even if it includes spaces''')
 def render(args):
 	args = args.strip('"')
+	Tasks.create_task(taskfile.TaskType.RENDER_ANIMATION, args)
 	bgd_thread.notify_thread()
 
 
@@ -134,9 +136,19 @@ def clear(args):
 	os.system('cls' if os.name == 'nt' else 'clear')
 	print(Color.YELLOW + "=========================\n\n")
 
-@command('', [], 'Cancels the current task and ')
-def cancel(args):
-	pass
+@command('[index]', [],
+'''Skips the current task and re-inserts it in the queue either at the end or at [index].
+Specify 0 for [index] to re-insert the current tasks at the beginning of the queue.''')
+def skip(args):
+	if args == '':
+		index = -1
+	else:
+		try:
+			index = int(args)
+		except ValueError:
+			invalid_args('skip')
+			return
+
 
 
 # Start

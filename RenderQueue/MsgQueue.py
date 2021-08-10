@@ -1,7 +1,6 @@
 
 import queue
 
-import BgdThread
 import __main__
 
 '''

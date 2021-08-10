@@ -2,11 +2,11 @@
 import threading
 import subprocess
 
-import MsgQueue as msgq
-import Tasks
+import msgqueue as msgq
+import taskfile
 
 '''
-BgdThread
+bgdthread
 Handles the background thread that receives and processes messages from MsgQueue
 Also handles the creation of subprocesses that run renders and bakes
 
@@ -38,7 +38,7 @@ class BgdThread(threading.Thread):
 		while not self.done:
 			# If subp is None, we're allowed to start a new task
 			if self.subp is None:
-				task = Tasks.next_task()
+				task = taskfile.next_task()
 				if task is not None:
 					self.launch_task(task)
 			nextMsg = msgq.next_message()

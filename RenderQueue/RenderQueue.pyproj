@@ -21,16 +21,20 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="BgdThread.py">
+    <Compile Include="bgdthread.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="MsgQueue.py">
+    <Compile Include="msgqueue.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tasks.py">
+    <Compile Include="taskfile.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="__main__.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="LICENSE.md" />
+    <Content Include="README.md" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
