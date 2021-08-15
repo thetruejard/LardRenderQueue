@@ -4,7 +4,7 @@ import queue
 import __main__
 
 '''
-MsgQueue
+msgqueue
 The Message Queue communicates actions from the main thread and waiting thread to the background thread
 This is for things like canceling/skipping tasks and finishing tasks but NOT starting tasks
 I.e., these messages are only relevant within one runtime; these messages do not persist across instances

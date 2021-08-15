@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+
+
+# CUSTOM - NOT GENERATED
+
+# The extension used for script-generated files
+*.dat

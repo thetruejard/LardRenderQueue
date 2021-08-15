@@ -24,10 +24,16 @@
     <Compile Include="bgdthread.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="brender.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="msgqueue.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="taskfile.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="tasks.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="__main__.py" />

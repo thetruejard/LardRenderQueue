@@ -1,9 +1,15 @@
 
 import threading
+import pathlib
 
 '''
-Tasks
+taskfile
 Handles all types of tasks, interfacing with file(s) to track queued bakes and renders
+
+There are 2 files that this module interfaces with:
+1. taskfile.dat: Stores the list of tasks that need to be completed
+2. currenttask.dat: Stores information about the task that is currently running
+	- This task is NOT also stored in the taskfile
 '''
 
 # The name of the file in which tasks are stored. The current working directory is used
@@ -11,6 +17,8 @@ Handles all types of tasks, interfacing with file(s) to track queued bakes and r
 tasklist_filename = 'tasklist.dat'
 # Each task in the taskfile is one line of text followed by a newline
 
+# The name of the file in which info about the current task is stored. The cwd is used
+currenttask_filename = 'currenttask.dat'
 
 
 class TaskType:
@@ -26,6 +34,12 @@ class Task:
 
 	def __str__(self):
 		return self.type + ' ' + self.args
+
+	def parse(line):
+		if line[-1] == '\n':
+			line = line[:-1]
+		split = line.split(sep=' ', maxsplit=1)
+		return Task(split[0], split[1])
 
 
 disk_mutex = threading.RLock()
@@ -57,8 +71,7 @@ def read_tasks() -> list:
 		with open(tasklist_filename, 'r') as f:
 			lines = f.readlines()
 		for line in lines:
-			split = line.split(sep=' ', maxsplit=1)
-			tasks.append(Task(split[0], split[1]))
+			tasks.append(Task.parse(line))
 	except:
 		pass
 	unlock_disk()
@@ -69,7 +82,7 @@ def write_tasks(tasks : list):
 	lock_disk()
 	with open(tasklist_filename, 'w') as f:
 		for task in tasks:
-			f.write(str(task))
+			f.write(str(task) + '\n')
 	unlock_disk()
 
 
@@ -86,5 +99,40 @@ def create_task(type, args, idx=-1):
 	unlock_disk()
 
 
+# Make sure to call clear_current_task() first is appropriate
+# If a current task exists, returns that one. Otherwise, retrieves the next one from a list
 def next_task():
-	return None
+	lock_disk()
+	if pathlib.Path(currenttask_filename).exists():
+		with open(currenttask_filename, 'r') as f:
+			lines = f.readlines()
+		for line in lines:
+			# TODO: parse other lines if necessary. For now just returns the first one
+			unlock_disk()
+			return Task.parse(line)
+	tasks = read_tasks()
+	if len(tasks) == 0:
+		unlock_disk()
+		return None
+	next = tasks[0]
+	tasks = tasks[1:]
+	write_tasks(tasks);
+	unlock_disk()
+	return next
+
+
+def clear_current_task():
+	lock_disk()
+	path = pathlib.Path(currenttask_filename)
+	if path.exists():
+		path.unlink()
+	unlock_disk()
+		
+
+
+def make_task_current(task : Task):
+	lock_disk()
+	clear_current_task()
+	with open(currenttask_filename, 'w') as f:
+		f.write(str(task))
+	unlock_disk()

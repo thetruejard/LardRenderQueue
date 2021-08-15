@@ -4,6 +4,7 @@ import subprocess
 
 import msgqueue as msgq
 import taskfile
+import tasks
 
 '''
 bgdthread
@@ -31,6 +32,7 @@ class BgdThread(threading.Thread):
 	def wait_func(self):
 		self.last_exit_code = self.subp.wait()
 		msgq.add_message(msgq.MessageType.COMPLETE if self.last_exit_code == 0 else msgq.MessageType.FAILED)
+		self.notify_thread()
 
 	# The main background thread function. Must be named 'run'
 	def run(self):
@@ -59,8 +61,11 @@ class BgdThread(threading.Thread):
 
 
 	def launch_task(self, task):
-		return # TODO
-		self.waiting_thread = threading.Thread(target = wait_func, args = (self))
+		taskfile.make_task_current(task)
+		self.subp = tasks.run_task(task)
+		if self.subp is not None:
+			self.waiting_thread = threading.Thread(target=BgdThread.wait_func, args=[self])
+			self.waiting_thread.start()
 		
 				
 	# Call this to tell the thread to check for newly added messages or tasks
@@ -72,9 +77,9 @@ class BgdThread(threading.Thread):
 	def end_subprocess(self):
 		if self.subp is not None:
 			# We have to kill, not terminate; Blender will not stop a render with normal termination
-			subp.kill()
+			self.subp.kill()
 			# TODO: Based on some parameter, either mark this as incomplete or return to task list
-		if self.waiting_thread is not None:
+		if self.waiting_thread is not None and self.waiting_thread.is_alive():
 			self.waiting_thread.join()
 			self.waiting_thread = None
 
@@ -86,10 +91,13 @@ class BgdThread(threading.Thread):
 
 	def skip(self):
 		self.end_subprocess()
+		print('skip')
 
 	def complete(self):
 		self.subp = None
+		taskfile.clear_current_task()
 
 	def failed(self):
 		self.subp = None
+		print('failed')
 

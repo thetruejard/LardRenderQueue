@@ -7,7 +7,7 @@ import msgqueue as msgq
 import taskfile
 
 '''
-__main__.py
+__main__
 Starts and stop the background thread and handles user input
 Relays messages to the MsgQueue based on user input
 '''
@@ -105,7 +105,7 @@ def help(args):
 <filepath> may be quoted but does not have to be, even if it includes spaces''')
 def render(args):
 	args = args.strip('"')
-	Tasks.create_task(taskfile.TaskType.RENDER_ANIMATION, args)
+	taskfile.create_task(taskfile.TaskType.RENDER_ANIMATION, args)
 	bgd_thread.notify_thread()
 
 
