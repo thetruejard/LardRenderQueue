@@ -14,6 +14,8 @@ Runs tasks of all types. Also has some utilities to validate files and task argu
 
 brender_path = Path(__file__).parent.joinpath('brender.py').absolute()
 
+blender_path = "blender"
+
 
 
 def is_valid_file(file : Path):
@@ -49,7 +51,7 @@ def render_animation(args):
 		return None
 	try:
 		return subprocess.Popen(
-			f'"C:/Program Files/Blender Foundation/Blender 2.93/blender.exe" --background {filename} -P {brender_path} -- 0',
+			f'{blender_path} --background {filename} -P {brender_path} -- 0',
 			creationflags=subprocess.CREATE_NEW_CONSOLE)
 			# Arg 0: whether to render an animation (if false, then this is a still image)
 			#'0'],)

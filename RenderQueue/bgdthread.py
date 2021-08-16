@@ -92,6 +92,7 @@ class BgdThread(threading.Thread):
 	def skip(self):
 		self.end_subprocess()
 		print('skip')
+		taskfile.clear_current_task()
 
 	def complete(self):
 		self.subp = None
@@ -100,4 +101,5 @@ class BgdThread(threading.Thread):
 	def failed(self):
 		self.subp = None
 		print('failed')
+		taskfile.clear_current_task()
 
