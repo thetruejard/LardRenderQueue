@@ -113,8 +113,30 @@ def render(args):
 def bake(args):
 	bgd_thread.notify_thread()
 
+@command('', [], 'Prints the current state information of the script and all tasks')
+def status(args):
+	if args != '':
+		invalid_args('status')
+		return
+	current = taskfile.get_current_task()
+	tasks = taskfile.read_tasks()
+	# TODO: completed and failed tasks
+	if current is not None:
+		print(Color.YELLOW + "===== Current Task =====")
+		print(current.desc())
+	print('')
+	if len(tasks) == 0:
+		print(Color.CYAN + "===== Tasks Queued =====\nThere are no tasks currently queued" + Color.RESET)
+	else:
+		print(Color.CYAN + "===== Tasks Queued =====")
+		for i in range(0, len(tasks)):
+			print(str(i + 1) + ". " + tasks[i].desc())
+		print(Color.RESET)
+
+
+
 @command('', ['rl'], 'Lists all blend files currently queued for rendering')
-def renderlist(args):
+def list(args):
 	if args != '':
 		invalid_args('renderlist')
 		return

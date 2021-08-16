@@ -53,14 +53,6 @@ def render_animation(args):
 			creationflags=subprocess.CREATE_NEW_CONSOLE)
 			# Arg 0: whether to render an animation (if false, then this is a still image)
 			#'0'],)
-		return subprocess.Popen(
-			['"C:\Program Files\Blender Foundation\Blender 2.93\blender.exe"',
-			'-b',
-			filename,
-			f'-P {brender_path}',
-			'--',
-			# Arg 0: whether to render an animation (if false, then this is a still image)
-			'1'],)
 	except:
 		# TODO: blender not found warning
 		print("blender not found warning")
@@ -75,16 +67,7 @@ def render_still(args):
 	return subprocess.Popen(
 		f'-b {filename} -P {brender_path} -- 0',
 		executable='C:/Program Files/Blender Foundation/Blender 2.93/blender.exe')
-		# Arg 0: whether to render an animation (if false, then this is a still image)
-		#'0'],)
-	return subprocess.Popen(
-		['blender',
-		'-b',
-		filename,
-		f'-P {brender_path}',
-		'--',
-		# Arg 0: whether to render an animation (if false, then this is a still image)
-		'0'],)
+
 
 def bake(args):
 	pass

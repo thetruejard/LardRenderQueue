@@ -25,6 +25,13 @@ class TaskType:
 	RENDER_ANIMATION = 'ra'
 	RENDER_STILL = 'rs'
 	BAKE = 'b'
+	def get_name(type):
+		if type == TaskType.RENDER_ANIMATION:
+			return 'Render Animation'
+		elif type == TaskType.RENDER_STILL:
+			return 'Render Animation'
+		elif type == TaskType.BAKE:
+			return 'Render Animation'
 
 
 class Task:
@@ -34,6 +41,9 @@ class Task:
 
 	def __str__(self):
 		return self.type + ' ' + self.args
+
+	def desc(self):
+		return f'''{TaskType.get_name(self.type)}\n\t- File: {self.args}'''
 
 	def parse(line):
 		if line[-1] == '\n':
@@ -103,13 +113,10 @@ def create_task(type, args, idx=-1):
 # If a current task exists, returns that one. Otherwise, retrieves the next one from a list
 def next_task():
 	lock_disk()
-	if pathlib.Path(currenttask_filename).exists():
-		with open(currenttask_filename, 'r') as f:
-			lines = f.readlines()
-		for line in lines:
-			# TODO: parse other lines if necessary. For now just returns the first one
-			unlock_disk()
-			return Task.parse(line)
+	current = get_current_task()
+	if current is not None:
+		unlock_disk()
+		return current
 	tasks = read_tasks()
 	if len(tasks) == 0:
 		unlock_disk()
@@ -128,6 +135,21 @@ def clear_current_task():
 		path.unlink()
 	unlock_disk()
 		
+
+# Returns a Task object defining the current task, or None if none
+def get_current_task():
+	lock_disk()
+	path = pathlib.Path(currenttask_filename)
+	if not path.exists():
+		unlock_disk()
+		return None
+	with open(currenttask_filename, 'r') as f:
+		lines = f.readlines()
+		for line in lines:
+			# TODO: parse other lines if necessary. For now just returns the first one
+			unlock_disk()
+			return Task.parse(line)
+	unlock_disk()
 
 
 def make_task_current(task : Task):
