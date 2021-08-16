@@ -2,7 +2,7 @@
 
 The Lard Render Queue is a WIP Python script to automatically queue and run headless renders and bakes of Blender projects (`.blend` files).
 
-Note that the script is currently under development and is not usable in its current state.
+Note that the script is currently under development and only some features are usable in its current state.
 
 For license information, see [LICENSE.md](LICENSE.md).
 
@@ -10,19 +10,25 @@ For license information, see [LICENSE.md](LICENSE.md).
 
 ## Features
 
-This is a list of features to be implemented by the time of the script's first usable version.
+The following features are complete and ready for use.
 
-- Render `.blend` files, including still images and animations
+- Render `.blend` files (animations only)
+- Queue multiple renders
+- Pause and resume renders
+
+The following features are NOT yet complete and ready for use.
+
+- Render `.blend` files (still images)
 - Bake all dynamics in `.blend` files
-- Queue multiple renders/bakes and modify the order in which they are queued
+- Modify the order in which tasks are queued
 - Detect when renders/bakes have failed and report the corresponding exit codes from Blender
-- Pause and resume renders (animations only) and bakes (if possible) for user convenience
+- Pause and resume bakes (if possible)
 
 ---
 
 ## Getting Started
 
-The script is developed with Python 3.7 but may work with earlier versions.
+The script is developed with Python 3.7 but may work with other versions.
 
 Blender must be installed and in your `PATH` such that it is accessible via the command line. bpy updates along with Blender so it is recommended to use a relatively recent version.
 
