@@ -120,6 +120,8 @@ def status(args):
 		return
 	current = taskfile.get_current_task()
 	tasks = taskfile.read_tasks()
+	completed = taskfile.read_completed()
+	failed = taskfile.read_failed()
 	# TODO: completed and failed tasks
 	if current is not None:
 		print(Color.YELLOW + "===== Current Task =====")
@@ -131,7 +133,18 @@ def status(args):
 		print(Color.CYAN + "===== Tasks Queued =====")
 		for i in range(0, len(tasks)):
 			print(str(i + 1) + ". " + tasks[i].desc())
-		print(Color.RESET)
+	print('')
+	if len(completed) > 0:
+		print(Color.GREEN + "===== Tasks Completed =====")
+		for i in range(0, len(completed)):
+			print(str(i + 1) + ". " + completed[i].desc())
+	print('')
+	if len(failed) > 0:
+		print(Color.MAGENTA + "===== Tasks Failed =====")
+		for i in range(0, len(failed)):
+			print(str(i + 1) + ". " + failed[i].desc())
+	print('\n' + Color.RESET)
+
 
 
 

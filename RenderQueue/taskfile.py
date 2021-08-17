@@ -10,6 +10,8 @@ There are 2 files that this module interfaces with:
 1. taskfile.dat: Stores the list of tasks that need to be completed
 2. currenttask.dat: Stores information about the task that is currently running
 	- This task is NOT also stored in the taskfile
+3. completed.dat: Stores the list of all tasks that have been completed
+4. failed.dat: Stores the list of all tasks that have failed
 '''
 
 # The name of the file in which tasks are stored. The current working directory is used
@@ -19,6 +21,12 @@ tasklist_filename = 'tasklist.dat'
 
 # The name of the file in which info about the current task is stored. The cwd is used
 currenttask_filename = 'currenttask.dat'
+
+# The name of the file in which the list of completed tasks is stored. The cwd is used
+completed_filename = 'completed.dat'
+
+# The name of the file in which the list of failed tasks is stored. The cwd is used
+failed_filename = 'failed.dat'
 
 
 class TaskType:
@@ -43,13 +51,35 @@ class Task:
 		return self.type + ' ' + self.args
 
 	def desc(self):
-		return f'''{TaskType.get_name(self.type)}\n\t- File: {self.args}'''
+		return f'{TaskType.get_name(self.type)}\n\t- File: {self.args}'
 
 	def parse(line):
 		if line[-1] == '\n':
 			line = line[:-1]
 		split = line.split(sep=' ', maxsplit=1)
 		return Task(split[0], split[1])
+
+class CompletedTask(Task):
+	# TODO: add more args (such as total time, etc.)
+	def __init__(self, task):
+		super().__init__(task.type, task.args)
+
+class FailedTask(Task):
+	# TODO: add more args (such as time until fail, etc.)
+	def __init__(self, task, exit_code):
+		super().__init__(task.type, task.args)
+		self.exit_code = exit_code
+
+	def __str__(self):
+		return f'{self.exit_code} ' + super().__str__()
+
+	def desc(self):
+		return super().desc() + f'\n\t- Exit code: {self.exit_code}'
+
+	def parse(line):
+		split = line.split(sep=' ', maxsplit=1)
+		task = Task.parse(split[1])
+		return FailedTask(task, int(split[0]))
 
 
 disk_mutex = threading.RLock()
@@ -60,6 +90,32 @@ def lock_disk():
 	disk_mutex.acquire()
 def unlock_disk():
 	disk_mutex.release()
+
+# Utility: writes the given list of elements to the given file using str() and newlines
+def write_list(filename, elements : list):
+	lock_disk()
+	with open(filename, 'w') as f:
+		for e in elements:
+			f.write(str(e) + '\n')
+	unlock_disk()
+
+# Utility: returns a list of type from the given file using type.parse() separated by newlines
+# If num is positive, only reads the first num elements
+def read_list(filename, type, num=-1) -> list:
+	lock_disk()
+	elements = []
+	try:
+		with open(filename, 'r') as f:
+			lines = f.readlines()
+		if len(lines) > num > 0:
+			lines = lines[:num]
+		for line in lines:
+			elements.append(type.parse(line))
+	except:
+		pass
+	unlock_disk()
+	return elements
+
 
 # Returns the number of tasks that are currently queued
 def num_tasks():
@@ -75,25 +131,11 @@ def num_tasks():
 
 # Reads the taskfile and returns a list of Task objects
 def read_tasks() -> list:
-	lock_disk()
-	tasks = []
-	try:
-		with open(tasklist_filename, 'r') as f:
-			lines = f.readlines()
-		for line in lines:
-			tasks.append(Task.parse(line))
-	except:
-		pass
-	unlock_disk()
-	return tasks
+	return read_list(tasklist_filename, Task)
 
 # Writes a list of Task objects to the taskfile, overwriting the list currently in the file
 def write_tasks(tasks : list):
-	lock_disk()
-	with open(tasklist_filename, 'w') as f:
-		for task in tasks:
-			f.write(str(task) + '\n')
-	unlock_disk()
+	write_list(tasklist_filename, tasks)
 
 
 # idx is the index at which to insert the task into the queue. If out of range (default = -1), adds to end
@@ -158,3 +200,69 @@ def make_task_current(task : Task):
 	with open(currenttask_filename, 'w') as f:
 		f.write(str(task))
 	unlock_disk()
+
+
+
+# Writes the given list of CompletedTasks to disk
+def write_completed(tasks : list):
+	write_list(completed_filename, tasks)
+
+# Reads the first num completed tasks. If num is negative, returns all completed tasks
+def read_completed(num=-1) -> list:
+	return read_list(completed_filename, CompletedTask, num)
+
+# Adds the given task to the list of completed tasks
+def add_completed(task : CompletedTask):
+	lock_disk()
+	tasks = read_completed()
+	tasks.insert(0, task)
+	write_completed(tasks)
+	unlock_disk()
+
+# Clears the list of completed tasks. If keep is positive, clears all except the most recent keep tasks
+def clear_completed(keep=-1):
+	if keep > 0:
+		lock_disk()
+		tasks = read_completed()
+		tasks = tasks[keep - 1:]
+		write_completed(tasks)
+		unlock_disk()
+	else:
+		lock_disk()
+		path = pathlib.Path(completed_filename)
+		if path.exists():
+			path.unlink()
+		unlock_disk()
+
+
+
+# Writes the given list of FailedTasks to disk
+def write_failed(tasks : list):
+	write_list(failed_filename, tasks)
+
+# Reads the first num failed tasks. If num is negative, returns all failed tasks
+def read_failed(num=-1) -> list:
+	return read_list(failed_filename, FailedTask, num)
+
+# Adds the given task to the list of failed tasks
+def add_failed(task : FailedTask):
+	lock_disk()
+	tasks = read_failed()
+	tasks.insert(0, task)
+	write_failed(tasks)
+	unlock_disk()
+
+# Clears the list of failed tasks. If keep is positive, clears all except the most recent keep tasks
+def clear_failed(keep=-1):
+	if keep > 0:
+		lock_disk()
+		tasks = read_failed()
+		tasks = tasks[keep - 1:]
+		write_failed(tasks)
+		unlock_disk()
+	else:
+		lock_disk()
+		path = pathlib.Path(failed_filename)
+		if path.exists():
+			path.unlink()
+		unlock_disk()

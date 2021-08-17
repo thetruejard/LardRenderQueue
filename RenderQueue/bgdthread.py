@@ -1,6 +1,7 @@
 
 import threading
 import subprocess
+import ctypes
 
 import msgqueue as msgq
 import taskfile
@@ -30,7 +31,7 @@ class BgdThread(threading.Thread):
 
 	# The function used by the waiting thread
 	def wait_func(self):
-		self.last_exit_code = self.subp.wait()
+		self.last_exit_code = ctypes.c_int32(self.subp.wait()).value
 		msgq.add_message(msgq.MessageType.COMPLETE if self.last_exit_code == 0 else msgq.MessageType.FAILED)
 		self.notify_thread()
 
@@ -96,10 +97,14 @@ class BgdThread(threading.Thread):
 
 	def complete(self):
 		self.subp = None
+		task = taskfile.get_current_task()
+		taskfile.add_completed(taskfile.CompletedTask(task))
 		taskfile.clear_current_task()
 
 	def failed(self):
 		self.subp = None
 		print('failed')
+		task = taskfile.get_current_task()
+		taskfile.add_failed(taskfile.FailedTask(task, self.last_exit_code))
 		taskfile.clear_current_task()
 
