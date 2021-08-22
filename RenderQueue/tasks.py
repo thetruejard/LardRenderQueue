@@ -28,6 +28,22 @@ def is_valid_blend(file : Path):
 
 
 
+def launch_blender(filename, script, extra_args):
+	if not is_valid_blend(filename):
+		# TODO: raise a warning and fail the task
+		print('some warning 2')
+		return None
+	try:
+		return subprocess.Popen(
+			f'{blender_path} -b "{filename}" -P "{script}" -- {extra_args}',
+			creationflags=subprocess.CREATE_NEW_CONSOLE)
+	except OSError:
+		# TODO: blender not found warning
+		print("blender not found warning")
+		return None
+
+
+
 # Launches a task and returns a subprocess.Popen object. Assign this to BgdThread.subp
 # If the task failed to launch, returns None
 def run_task(task : taskfile.Task):
@@ -45,30 +61,15 @@ def run_task(task : taskfile.Task):
 def render_animation(args):
 	splitargs = args.split(' ')
 	filename = splitargs[0]
-	if not is_valid_blend(filename):
-		# TODO: raise a warning and fail the task
-		print('some warning 2')
-		return None
-	try:
-		return subprocess.Popen(
-			f'{blender_path} --background {filename} -P {brender_path} -- 0',
-			creationflags=subprocess.CREATE_NEW_CONSOLE)
-			# Arg 0: whether to render an animation (if false, then this is a still image)
-			#'0'],)
-	except:
-		# TODO: blender not found warning
-		print("blender not found warning")
-	pass
+	# Arg 0: whether to render an animation (if false, then this is a still image)
+	return launch_blender(filename, brender_path, '1')
+	
 
 def render_still(args):
 	splitargs = args.split(' ')
 	filename = splitargs[0]
-	if not is_valid_blend(filename):
-		# TODO: raise a warning and fail the task
-		return None
-	return subprocess.Popen(
-		f'-b {filename} -P {brender_path} -- 0',
-		executable='C:/Program Files/Blender Foundation/Blender 2.93/blender.exe')
+	# Arg 0: whether to render an animation (if false, then this is a still image)
+	return launch_blender(filename, brender_path, '0')
 
 
 def bake(args):

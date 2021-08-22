@@ -21,7 +21,7 @@ argv = argv[argv.index("--") + 1:]  # get all args after "--"
 
 # Parse command line arguments. This must match tasks.render_animation() and tasks.render_still()
 # Arg 0: whether to render an animation (if false, then this is a still image)
-arg_animation = bool(argv[0])
+arg_animation = bool(int(argv[0]))
 
 
 

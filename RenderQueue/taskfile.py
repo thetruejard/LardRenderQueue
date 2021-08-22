@@ -37,9 +37,9 @@ class TaskType:
 		if type == TaskType.RENDER_ANIMATION:
 			return 'Render Animation'
 		elif type == TaskType.RENDER_STILL:
-			return 'Render Animation'
+			return 'Render Still'
 		elif type == TaskType.BAKE:
-			return 'Render Animation'
+			return 'Bake Dynamics'
 
 
 class Task:
@@ -168,6 +168,14 @@ def next_task():
 	write_tasks(tasks);
 	unlock_disk()
 	return next
+
+# Clears the queue of all tasks. Does not affect the current task
+def clear_tasks():
+	lock_disk()
+	path = pathlib.Path(tasklist_filename)
+	if path.exists():
+		path.unlink()
+	unlock_disk()
 
 
 def clear_current_task():

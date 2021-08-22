@@ -107,4 +107,3 @@ class BgdThread(threading.Thread):
 		task = taskfile.get_current_task()
 		taskfile.add_failed(taskfile.FailedTask(task, self.last_exit_code))
 		taskfile.clear_current_task()
-

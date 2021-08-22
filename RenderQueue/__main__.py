@@ -1,10 +1,12 @@
 
 import os
 import sys
+import atexit
 
 import bgdthread as bgd
 import msgqueue as msgq
 import taskfile
+
 
 '''
 __main__
@@ -101,12 +103,21 @@ def help(args):
 			print("Type 'help' for a list of available commands")
 
 @command('<filepath>', ['r'],
-'''Adds the specified blend file to the queue for rendering
-<filepath> may be quoted but does not have to be, even if it includes spaces''')
+'''Adds the specified blend file to the queue for rendering as an animation
+If <filepath> includes whitespace, it must be quoted''')
 def render(args):
 	args = args.strip('"')
 	taskfile.create_task(taskfile.TaskType.RENDER_ANIMATION, args)
 	bgd_thread.notify_thread()
+
+@command('<filepath>', ['s'],
+'''Adds the specified blend file to the queue for rendering as a still image
+If <filepath> includes whitespace, it must be quoted''')
+def still(args):
+	args = args.strip('"')
+	taskfile.create_task(taskfile.TaskType.RENDER_STILL, args)
+	bgd_thread.notify_thread()
+
 
 
 @command('<filepath>', ['b'], 'Adds the specified blend file to the queue for baking all physics dynamics')
@@ -146,13 +157,26 @@ def status(args):
 	print('\n' + Color.RESET)
 
 
-
-
-@command('', ['rl'], 'Lists all blend files currently queued for rendering')
-def list(args):
-	if args != '':
-		invalid_args('renderlist')
+@command('[completed/failed/queued/c/f/q]', [],
+'''Clears the specified list(s) of tasks. This cannot be undone
+Multiple can be specified at a time (ex: 'clear c f')
+If no list is specified, the lists of completed and failed tasks are cleared''')
+def clear(args):
+	has_args = len(args) > 0
+	args = args.split(' ')
+	valid = ['completed', 'c', 'failed', 'f', 'queued', 'q']
+	if has_args and any(term not in valid for term in args):
+		invalid_args('clear')
 		return
+	if not has_args or 'completed' in args or 'c' in args:
+		taskfile.clear_completed()
+	if not has_args or 'failed' in args or 'f' in args:
+		taskfile.clear_failed()
+	if 'queued' in args or 'q' in args:
+		taskfile.clear_tasks()
+
+
+
 
 @command('', ['q', 'exit'], 'Ends the background thread and quits the script')
 def quit(args=''):
@@ -162,11 +186,12 @@ def quit(args=''):
 	global done
 	done = True
 	msgq.add_message(msgq.MessageType.QUIT)
+atexit.register(quit)
 
-@command('', ['cls'], 'Clears the console')
-def clear(args):
+@command('', [], 'Clears the console')
+def cls(args):
 	if args != '':
-		invalid_args('clear')
+		invalid_args('cls')
 		return
 	os.system('cls' if os.name == 'nt' else 'clear')
 	print(Color.YELLOW + "=========================\n\n")
