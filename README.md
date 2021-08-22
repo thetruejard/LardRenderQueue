@@ -12,17 +12,24 @@ For license information, see [LICENSE.md](LICENSE.md).
 
 The following features are complete and ready for use.
 
-- Render `.blend` files (animations only)
+- Render `.blend` files, including animations and still images
 - Queue multiple renders
 - Pause and resume renders
+- Log the completion status of renders and report the exit codes from Blender on failure
 
-The following features are NOT yet complete and ready for use.
+The following features are currently under development.
 
-- Render `.blend` files (still images)
 - Bake all dynamics in `.blend` files
 - Modify the order in which tasks are queued
-- Detect when renders/bakes have failed and report the corresponding exit codes from Blender
+- Detect when bakes have failed and report the corresponding exit codes from Blender
 - Pause and resume bakes (if possible)
+
+The following features are planned for the future.
+
+- "Headless" script operation to modify the queue without running tasks
+- Queue any kind of script, including python, batch, shell, bash, and any executable accessible via the command line
+- LAN file sharing and remote queueing for render farm support
+- Support for photogrammetry with Meshroom
 
 ---
 
