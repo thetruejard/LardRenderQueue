@@ -6,6 +6,7 @@ import atexit
 import bgdthread as bgd
 import msgqueue as msgq
 import taskfile
+import lan
 
 
 '''
@@ -13,6 +14,9 @@ __main__
 Starts and stop the background thread and handles user input
 Relays messages to the MsgQueue based on user input
 '''
+
+version = 'beta 1.0'
+
 
 
 # As a general (empirical) rule of thumb, debuggers on Windows do not support ANSI codes
@@ -44,6 +48,8 @@ else:
 		MAGENTA = ''
 		CYAN = ''
 		RESET = ''
+def get_color(color):
+	return eval(f'Color.{color}')
 
 
 
@@ -176,6 +182,49 @@ def clear(args):
 		taskfile.clear_tasks()
 
 
+@command('<IPv4> <port>', [],
+'''Connects as a client to a server at IPv4 over port
+Run 'server' on the server to retrieve these values''')
+def client(args):
+	splitargs = args.split(' ')
+	if len(splitargs) != 2:
+		invalid_args('client')
+		return
+	ip, port = splitargs[0], int(splitargs[1])
+	lan.make_client(ip, port)
+
+@command('[port]', [],
+'''Establishes this script instance as a server that other instances can connect to
+If no port is specified, the script will let the OS select a port
+If this instance is already a server, the current ip and port are retrieved''')
+def server(args):
+	if args != '':
+		try:
+			port = int(args)
+		except:
+			invalid_args('server')
+			return
+	else:
+		port = None
+	lan.make_server(port)
+
+@command('<IPv4> <port>', [],
+'''Connects as a slave to a server at IPv4 over port
+Run 'server' on the server to retrieve these values''')
+def slave(args):
+	splitargs = args.split(' ')
+	if len(splitargs) != 2:
+		invalid_args('slave')
+		return
+	ip, port = splitargs[0], int(splitargs[1])
+	lan.make_slave(ip, port)
+
+@command('', [], 'Disconnects the current LAN state (client/server/slave), if any')
+def disconnect(args):
+	if args != '':
+		invalid_args('disconnect')
+		return
+	lan.disconnect()
 
 
 @command('', ['q', 'exit'], 'Ends the background thread and quits the script')

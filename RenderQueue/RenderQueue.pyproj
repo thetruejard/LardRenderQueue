@@ -30,6 +30,9 @@
     <Compile Include="msgqueue.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="lan.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="taskfile.py">
       <SubType>Code</SubType>
     </Compile>
