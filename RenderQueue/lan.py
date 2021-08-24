@@ -1,8 +1,9 @@
 
 import socket
 import threading
+import shlex
 
-import __main__
+import __main__ as M
 import taskfile
 
 
@@ -13,12 +14,25 @@ When working over LAN, the script can run in one of 3 states:
 2. Server: the script receives tasks from a Client, renders them, and then returns the result
 3. Slave: the script shares a task list with a Server and helps it render
 If the current script instance is running as a server, a thread is created to monitor connections
+
+--- A Client/Slave -> Server connection goes as follows:
+1. C/S -> Server: Send a header with basic version/state info
+2. Server -> C/S: Send a response either accepting or refusing the connection
+--- If accepted, execution depends on whether a Client or Slave is involved
+--- Client:
+3. C -> Server: Send the request to the server, as well as a header defining all supplementary files (if any)
+4. Server -> C: Send a response either accepting or refusing the request and supplementary files
+5. C -> Server: If supplementary files are needed, send them
+--- Slave:
+# TODO
+---
+6. All sockets are closed
 '''
 
 
 
 class LANState:
-	NONE = None
+	NONE = 'n'
 	CLIENT = 'c'
 	SERVER = 's'
 	SLAVE = 'l'
@@ -27,6 +41,59 @@ current_LAN_state = LANState.NONE
 current_LAN_ip_port = (None, None)
 
 current_socket = None
+
+
+# Basic communication definitions
+class Comm:
+	# The maximum number of bytes to accept at one time. Must be larger than the max Header size (see below)
+	BUFFER_LENGTH = 4096
+
+	ACCEPT = 'accept'
+	REFUSE = 'refuse'
+	DELIMITER = '&'
+
+
+class RequestType:
+	# Just establish a connection between a Client/Slave and a Server
+	ESTABLISH = 'est'
+	# Send a task request to be queued on the server
+	ADD_TASK = 'addtask'
+	# Ask the server for the next task from its queue
+	NEXT_TASK = 'nexttask'
+
+
+
+
+# The header, i.e. the first thing sent from a client or slave to a server
+class Header:
+	def __init__(self):
+		self.version = M.version
+		self.LANState = LANState.NONE
+		# TODO: Password, if appropriate
+	
+	def __str__(self):
+		return f'"{self.version}" "{self.LANState}"'
+
+	# If parsing fails, returns None
+	def parse(string):
+		try:
+			tokens = shlex.split(string)
+			tmp = Header()
+			tmp.version = tokens[0]
+			tmp.LANState = tokens[1]
+		except IndexError:
+			return None
+		return tmp
+
+	# Creates a header from the current script state. Don't forget to convert to a string, if appropriate
+	def create_header():
+		tmp = Header()
+		tmp.LANState = current_LAN_state
+		return tmp
+
+
+
+
 
 
 server_thread = None
@@ -44,7 +111,20 @@ def server_thread_func():
 		except socket.timeout:
 			continue
 		print(f'Connected to {address}')
-		pass
+		
+		# Wait for a header
+		header = receive_data(connection)
+		if header is None:
+			print('Connection failed')
+			continue
+		header = Header.parse(str(header))
+		if header.version != M.version:
+			# Wrong version, refuse the connection
+			send_data(connection, Comm.REFUSE)
+			continue
+		send_data(connection, Comm.ACCEPT)
+		print(f'Connection accepted to instance of type "{header.LANState}"')
+
 	# Clean up
 	current_socket.close()
 	current_socket = None
@@ -57,8 +137,8 @@ def make_client(ip, port):
 	global current_socket
 	global server_thread
 	if current_LAN_state != LANState.NONE:
-		print(__main__.get_color('RED') + "The script is already in an LAN-enabled state. Run 'disconnect' first\n" +
-		__main__.get_color('RESET'))
+		print(M.get_col('RED') + "The script is already in an LAN-enabled state. Run 'disconnect' first\n" +
+		M.get_col('RESET'))
 		return
 	current_socket = socket.socket()
 	try:
@@ -68,9 +148,21 @@ def make_client(ip, port):
 		current_socket = None
 		return
 	print(f'Connected to {ip} on port {port}')
+	# Send header
+	send_data(current_socket, str(Header.create_header()))
+	# Get response
+	response = receive_data(current_socket)
+	if response is None:
+		print('Connection lost')
+		current_socket = None
+		return
+	tokens = str(response).split(Comm.DELIMITER)
+	if tokens[0] != Comm.ACCEPT:
+		print('Connection refused')
+		current_socket = None
+		return
 	# TODO
 	current_socket.close()
-
 
 
 def make_server(port=None):
@@ -79,9 +171,14 @@ def make_server(port=None):
 	global current_socket
 	global server_thread
 	global server_continue
-	if current_LAN_state != LANState.NONE:
-		print(__main__.get_color('RED') + "The script is already in an LAN-enabled state. Run 'disconnect' first\n" +
-		__main__.get_color('RESET'))
+	if current_LAN_state == LANState.SERVER:
+		print(M.get_col('CYAN') + "This script has already launched a server")
+		print(f"IPv4: {socket.gethostbyname(socket.gethostname())}")
+		print(f"Port: {current_LAN_ip_port[1]}\n" + M.get_col('RESET'))
+		return
+	elif current_LAN_state != LANState.NONE:
+		print(M.get_col('RED') + "The script is already in an LAN-enabled state. Run 'disconnect' first\n" +
+		M.get_col('RESET'))
 		return
 	if port is None:
 		port = 0
@@ -95,9 +192,9 @@ def make_server(port=None):
 	server_continue = True
 	server_thread = threading.Thread(target=server_thread_func)
 	server_thread.start()
-	print(__main__.get_color('CYAN') + "Server launched, now accepting connections")
-	print(f"IPv4: {socket.gethostname()}")
-	print(f"Port: {current_LAN_ip_port[1]}\n" + __main__.get_color('RESET'))
+	print(M.get_col('CYAN') + "Server launched, now accepting connections")
+	print(f"IPv4: {socket.gethostbyname(socket.gethostname())}")
+	print(f"Port: {current_LAN_ip_port[1]}\n" + M.get_col('RESET'))
 	pass
 
 def make_slave(ip, port):
@@ -106,8 +203,8 @@ def make_slave(ip, port):
 	global current_socket
 	global server_thread
 	if current_LAN_state != LANState.NONE:
-		print(__main__.get_color('RED') + "The script is already in an LAN-enabled state. Run 'disconnect' first\n" +
-		__main__.get_color('RESET'))
+		print(M.get_col('RED') + "The script is already in an LAN-enabled state. Run 'disconnect' first\n" +
+		M.get_col('RESET'))
 		return
 	pass
 
@@ -124,6 +221,22 @@ def disconnect():
 	current_LAN_ip_port = (None, None)
 	print("Disconnected")
 	pass
+
+
+# Send the given string or data over the given socket
+def send_data(socket : socket.socket, data):
+	if type(data) is str:
+		data = data.encode()
+	socket.sendall(data)
+
+# Receives and returns at most the given amount of data from the socket
+# If no data could be received, returns None
+def receive_data(socket : socket.socket, max_amount=Comm.BUFFER_LENGTH):
+	try:
+		return socket.recv(max_amount)
+	except:
+		return None
+
 
 
 

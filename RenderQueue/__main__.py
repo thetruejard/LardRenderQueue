@@ -2,6 +2,7 @@
 import os
 import sys
 import atexit
+import shlex
 
 import bgdthread as bgd
 import msgqueue as msgq
@@ -15,7 +16,8 @@ Starts and stop the background thread and handles user input
 Relays messages to the MsgQueue based on user input
 '''
 
-version = 'beta 1.0'
+# For parsing reasons, the version name cannot include quotes or other special characters
+version = 'dev'
 
 
 
@@ -48,7 +50,7 @@ else:
 		MAGENTA = ''
 		CYAN = ''
 		RESET = ''
-def get_color(color):
+def get_col(color):
 	return eval(f'Color.{color}')
 
 
@@ -91,12 +93,12 @@ bgd_thread = bgd.BgdThread()
 '''Prints usage information about commands
 If [command] is not specified, all available commands are printed''')
 def help(args):
-	if args.find(' ') >= 0:
-		invalid_args('help')
-		return
-	elif args=='':
+	if args is None:
 		# print_header_info is defined below, but is guaranteed to be defined before this function is called
 		print_header_info()
+	elif len(args) > 1:
+		invalid_args('help')
+		return
 	else:
 		cmdname = command_aliases.get(args, None)
 		cmd = commands.get(cmdname, None) if cmdname != None else None
@@ -105,23 +107,27 @@ def help(args):
 			print_command_info(cmdname, cmd)
 			print(Color.YELLOW + "=========================\n")
 		else:
-			print(Color.RED + f"Unrecognized command '{args}'")
+			print(Color.RED + f"Unrecognized command '{args[0]}'")
 			print("Type 'help' for a list of available commands")
 
 @command('<filepath>', ['r'],
 '''Adds the specified blend file to the queue for rendering as an animation
 If <filepath> includes whitespace, it must be quoted''')
 def render(args):
-	args = args.strip('"')
-	taskfile.create_task(taskfile.TaskType.RENDER_ANIMATION, args)
+	if args is None or len(args) != 1:
+		invalid_args('render')
+		return
+	taskfile.create_task(taskfile.TaskType.RENDER_ANIMATION, args[0])
 	bgd_thread.notify_thread()
 
 @command('<filepath>', ['s'],
 '''Adds the specified blend file to the queue for rendering as a still image
 If <filepath> includes whitespace, it must be quoted''')
 def still(args):
-	args = args.strip('"')
-	taskfile.create_task(taskfile.TaskType.RENDER_STILL, args)
+	if args is None or len(args) != 1:
+		invalid_args('still')
+		return
+	taskfile.create_task(taskfile.TaskType.RENDER_STILL, args[0])
 	bgd_thread.notify_thread()
 
 
@@ -132,7 +138,7 @@ def bake(args):
 
 @command('', [], 'Prints the current state information of the script and all tasks')
 def status(args):
-	if args != '':
+	if args is not None:
 		invalid_args('status')
 		return
 	current = taskfile.get_current_task()
@@ -168,8 +174,7 @@ def status(args):
 Multiple can be specified at a time (ex: 'clear c f')
 If no list is specified, the lists of completed and failed tasks are cleared''')
 def clear(args):
-	has_args = len(args) > 0
-	args = args.split(' ')
+	has_args = args is not None
 	valid = ['completed', 'c', 'failed', 'f', 'queued', 'q']
 	if has_args and any(term not in valid for term in args):
 		invalid_args('clear')
@@ -178,7 +183,7 @@ def clear(args):
 		taskfile.clear_completed()
 	if not has_args or 'failed' in args or 'f' in args:
 		taskfile.clear_failed()
-	if 'queued' in args or 'q' in args:
+	if has_args and ('queued' in args or 'q' in args):
 		taskfile.clear_tasks()
 
 
@@ -186,11 +191,14 @@ def clear(args):
 '''Connects as a client to a server at IPv4 over port
 Run 'server' on the server to retrieve these values''')
 def client(args):
-	splitargs = args.split(' ')
-	if len(splitargs) != 2:
+	if args is None or len(args) != 2:
 		invalid_args('client')
 		return
-	ip, port = splitargs[0], int(splitargs[1])
+	try:
+		ip, port = args[0], int(args[1])
+	except:
+		invalid_args('client')
+		return
 	lan.make_client(ip, port)
 
 @command('[port]', [],
@@ -198,9 +206,12 @@ def client(args):
 If no port is specified, the script will let the OS select a port
 If this instance is already a server, the current ip and port are retrieved''')
 def server(args):
-	if args != '':
+	if args is not None:
+		if len(args) > 1:
+			invalid_args('server')
+			return
 		try:
-			port = int(args)
+			port = int(args[0])
 		except:
 			invalid_args('server')
 			return
@@ -212,16 +223,19 @@ def server(args):
 '''Connects as a slave to a server at IPv4 over port
 Run 'server' on the server to retrieve these values''')
 def slave(args):
-	splitargs = args.split(' ')
-	if len(splitargs) != 2:
+	if args is None or len(args) != 2:
 		invalid_args('slave')
 		return
-	ip, port = splitargs[0], int(splitargs[1])
+	try:
+		ip, port = args[0], int(args[1])
+	except:
+		invalid_args('slave')
+		return
 	lan.make_slave(ip, port)
 
 @command('', [], 'Disconnects the current LAN state (client/server/slave), if any')
 def disconnect(args):
-	if args != '':
+	if args is not None:
 		invalid_args('disconnect')
 		return
 	lan.disconnect()
@@ -229,7 +243,7 @@ def disconnect(args):
 
 @command('', ['q', 'exit'], 'Ends the background thread and quits the script')
 def quit(args=''):
-	if args != '':
+	if args is not None:
 		invalid_args('quit')
 		return
 	global done
@@ -239,7 +253,7 @@ atexit.register(quit)
 
 @command('', [], 'Clears the console')
 def cls(args):
-	if args != '':
+	if args is not None:
 		invalid_args('cls')
 		return
 	os.system('cls' if os.name == 'nt' else 'clear')
@@ -249,11 +263,11 @@ def cls(args):
 '''Skips the current task and re-inserts it in the queue either at the end or at [index].
 Specify 0 for [index] to re-insert the current tasks at the beginning of the queue.''')
 def skip(args):
-	if args == '':
+	if args is None:
 		index = -1
 	else:
 		try:
-			index = int(args)
+			index = int(args[0])
 		except ValueError:
 			invalid_args('skip')
 			return
@@ -297,7 +311,7 @@ while not done:
 		cmdname = command_aliases.get(cmdalias, None)
 		cmd = commands.get(cmdname, None) if cmdname != None else None
 		if cmd != None:
-			cmd.func('' if len(splitline) < 2 else splitline[1].strip())
+			cmd.func(None if len(splitline) < 2 else shlex.split(splitline[1].strip()))
 		else:
 			print(Color.RED + f"Unknown command '{cmdalias}'")
 			print("Type 'help' for a list of available commands")
