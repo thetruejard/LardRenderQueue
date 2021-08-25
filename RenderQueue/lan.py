@@ -130,7 +130,9 @@ def server_thread_func():
 		send_data(connection, Comm.ACCEPT)
 		print(f'Connection accepted from instance of type "{header.LANState}"')
 
-		receive_file(connection, Path(r'"C:\Users\jwatr\Desktop\helloworld.txt"'))
+		print('attempting')
+		print(receive_file(connection, Path(r'C:\Users\jwatr\Desktop\helloworld.txt')))
+		connection.close()
 
 	# Clean up
 	current_socket.close()
@@ -281,9 +283,11 @@ def send_file(socket : socket.socket, file : Path):
 def receive_file(socket : socket.socket, destination : Path):
 	meta = receive_string(socket)
 	if meta is None:
+		print('no meta')
 		return False
-	splitmeta = meta.split()
-	if len(splitmeta) != 2 or splitmeta[0] != 'FILE':
+	splitmeta = meta.split(Comm.DELIMITER)
+	if len(splitmeta) != 2 or splitmeta[0] != Comm.FILE:
+		print(f'not Comm.FILE. instead: {splitmeta[0]}')
 		return False
 	try:
 		size = int(splitmeta[1])
@@ -300,7 +304,7 @@ def receive_file(socket : socket.socket, destination : Path):
 	amt = 0;
 	with open(destination, 'wb') as f:
 		while True:
-			data = receive_data(socket)
+			data = receive_data(socket, min(Comm.BUFFER_LENGTH, size - amt))
 			if data is None:
 				send_data(socket, Comm.FAILURE)
 				return False
