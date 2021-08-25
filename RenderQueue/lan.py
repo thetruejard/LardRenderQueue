@@ -237,7 +237,7 @@ def disconnect():
 
 
 # Interpret the next data from the socket as message. If not message or failure, returns False. If message, returns True
-def await(socket : socket.socket, message):
+def await_msg(socket : socket.socket, message):
 	received = receive_string(socket)
 	return received is not None and received == message
 
@@ -267,14 +267,14 @@ def send_file(socket : socket.socket, file : Path):
 		file = file.absolute()
 		size = os.path.getsize(file)
 		send_data(socket, f'{Comm.FILE}{Comm.DELIMITER}{size}')
-		if not await(socket, Comm.SUCCESS):
+		if not await_msg(socket, Comm.SUCCESS):
 			return False
 		while True:
 			data = f.read(Comm.BUFFER_LENGTH)
 			if data is None or data == '':
 				break
 			send_data(socket, data)
-	return await(socket, Comm.SUCCESS)
+	return await_msg(socket, Comm.SUCCESS)
 
 
 # Returns whether the file was successfully received
