@@ -130,8 +130,6 @@ def server_thread_func():
 		send_data(connection, Comm.ACCEPT)
 		print(f'Connection accepted from instance of type "{header.LANState}"')
 
-		receive_file(connection, Path(r'"C:\Users\jwatr\Desktop\helloworld.txt"'))
-
 	# Clean up
 	current_socket.close()
 	current_socket = None
@@ -171,8 +169,6 @@ def make_client(ip, port):
 		current_socket = None
 		current_LAN_state = LANState.NONE
 		return
-
-	send_file(current_socket, Path(r'C:\Users\jwatr\Desktop\helloworld.txt'))
 
 	# TODO
 	current_socket.close()
@@ -267,11 +263,11 @@ def send_file(socket : socket.socket, file : Path):
 		file = file.absolute()
 		size = os.path.getsize(file)
 		send_data(socket, f'{Comm.FILE}{Comm.DELIMITER}{size}')
-		if not await_msg(socket, Comm.SUCCESS):
+		if not await_msg(socket, Comm.ACCEPT):
 			return False
 		while True:
 			data = f.read(Comm.BUFFER_LENGTH)
-			if data is None or data == '':
+			if data is None or data == '' or data == b'':
 				break
 			send_data(socket, data)
 	return await_msg(socket, Comm.SUCCESS)
