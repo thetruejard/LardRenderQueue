@@ -2,6 +2,8 @@
 import socket
 import threading
 import shlex
+from pathlib import Path
+import os
 
 import __main__ as M
 import taskfile
@@ -51,6 +53,9 @@ class Comm:
 	ACCEPT = 'accept'
 	REFUSE = 'refuse'
 	DELIMITER = '&'
+	FILE = 'file'
+	SUCCESS = 'success'
+	FAILURE = 'failure'
 
 
 class RequestType:
@@ -113,17 +118,19 @@ def server_thread_func():
 		print(f'Connected to {address}')
 		
 		# Wait for a header
-		header = receive_data(connection)
+		header = receive_string(connection)
 		if header is None:
 			print('Connection failed')
 			continue
-		header = Header.parse(str(header))
+		header = Header.parse(header)
 		if header.version != M.version:
 			# Wrong version, refuse the connection
 			send_data(connection, Comm.REFUSE)
 			continue
 		send_data(connection, Comm.ACCEPT)
-		print(f'Connection accepted to instance of type "{header.LANState}"')
+		print(f'Connection accepted from instance of type "{header.LANState}"')
+
+		receive_file(connection, Path(r'"C:\Users\jwatr\Desktop\helloworld.txt"'))
 
 	# Clean up
 	current_socket.close()
@@ -148,19 +155,25 @@ def make_client(ip, port):
 		current_socket = None
 		return
 	print(f'Connected to {ip} on port {port}')
+	current_LAN_state = LANState.CLIENT
 	# Send header
 	send_data(current_socket, str(Header.create_header()))
 	# Get response
-	response = receive_data(current_socket)
+	response = receive_string(current_socket)
 	if response is None:
 		print('Connection lost')
 		current_socket = None
+		current_LAN_state = LANState.NONE
 		return
 	tokens = str(response).split(Comm.DELIMITER)
 	if tokens[0] != Comm.ACCEPT:
 		print('Connection refused')
 		current_socket = None
+		current_LAN_state = LANState.NONE
 		return
+
+	send_file(current_socket, Path(r'C:\Users\jwatr\Desktop\helloworld.txt'))
+
 	# TODO
 	current_socket.close()
 
@@ -223,6 +236,13 @@ def disconnect():
 	pass
 
 
+# Interpret the next data from the socket as message. If not message or failure, returns False. If message, returns True
+def await(socket : socket.socket, message):
+	received = receive_string(socket)
+	return received is not None and received == message
+
+
+
 # Send the given string or data over the given socket
 def send_data(socket : socket.socket, data):
 	if type(data) is str:
@@ -236,6 +256,60 @@ def receive_data(socket : socket.socket, max_amount=Comm.BUFFER_LENGTH):
 		return socket.recv(max_amount)
 	except:
 		return None
+def receive_string(socket : socket.socket, max_amount=Comm.BUFFER_LENGTH):
+	r = receive_data(socket, max_amount)
+	return r.decode() if r is not None else r
+
+
+# Returns whether the file was successfully sent
+def send_file(socket : socket.socket, file : Path):
+	with open(file, 'rb') as f:
+		file = file.absolute()
+		size = os.path.getsize(file)
+		send_data(socket, f'{Comm.FILE}{Comm.DELIMITER}{size}')
+		if not await(socket, Comm.SUCCESS):
+			return False
+		while True:
+			data = f.read(Comm.BUFFER_LENGTH)
+			if data is None or data == '':
+				break
+			send_data(socket, data)
+	return await(socket, Comm.SUCCESS)
+
+
+# Returns whether the file was successfully received
+def receive_file(socket : socket.socket, destination : Path):
+	meta = receive_string(socket)
+	if meta is None:
+		return False
+	splitmeta = meta.split()
+	if len(splitmeta) != 2 or splitmeta[0] != 'FILE':
+		return False
+	try:
+		size = int(splitmeta[1])
+	except:
+		print("couldn't get size")
+		send_data(socket, Comm.REFUSE)
+		return False
+	# Confirm this is a reasonable size (10 GBish ?)
+	if size > 10000000000 or size <= 0:
+		print('invalid size')
+		send_data(socket, Comm.REFUSE)
+		return False
+	send_data(socket, Comm.ACCEPT)
+	amt = 0;
+	with open(destination, 'wb') as f:
+		while True:
+			data = receive_data(socket)
+			if data is None:
+				send_data(socket, Comm.FAILURE)
+				return False
+			amt += len(data)
+			f.write(data)
+			if amt == size:
+				break
+	send_data(socket, Comm.SUCCESS)
+	return True
 
 
 
