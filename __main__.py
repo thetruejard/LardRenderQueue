@@ -117,7 +117,7 @@ def render(args):
 	if args is None or len(args) != 1:
 		invalid_args('render')
 		return
-	taskfile.create_task(taskfile.TaskType.RENDER_ANIMATION, args[0])
+	taskfile.create_task(taskfile.TaskType.RENDER_ANIMATION, args)
 	bgd_thread.notify_thread()
 
 @command('<filepath>', ['s'],
@@ -127,7 +127,7 @@ def still(args):
 	if args is None or len(args) != 1:
 		invalid_args('still')
 		return
-	taskfile.create_task(taskfile.TaskType.RENDER_STILL, args[0])
+	taskfile.create_task(taskfile.TaskType.RENDER_STILL, args)
 	bgd_thread.notify_thread()
 
 
@@ -220,20 +220,20 @@ def server(args):
 	lan.make_server(port)
 
 @command('<IPv4> <port>', [],
-'''Connects as a slave to a server at IPv4 over port
+'''Connects as a worker to a server at IPv4 over port
 Run 'server' on the server to retrieve these values''')
-def slave(args):
+def worker(args):
 	if args is None or len(args) != 2:
-		invalid_args('slave')
+		invalid_args('worker')
 		return
 	try:
 		ip, port = args[0], int(args[1])
 	except:
-		invalid_args('slave')
+		invalid_args('worker')
 		return
-	lan.make_slave(ip, port)
+	lan.make_worker(ip, port)
 
-@command('', [], 'Disconnects the current LAN state (client/server/slave), if any')
+@command('', [], 'Disconnects the current LAN state (client/server/worker), if any')
 def disconnect(args):
 	if args is not None:
 		invalid_args('disconnect')

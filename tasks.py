@@ -31,15 +31,14 @@ def is_valid_blend(file : Path):
 def launch_blender(filename, script, extra_args):
 	if not is_valid_blend(filename):
 		# TODO: raise a warning and fail the task
-		print('some warning 2')
+		print(f'Invalid blend file: {filename}')
 		return None
 	try:
 		return subprocess.Popen(
 			f'{blender_path} -b "{filename}" -P "{script}" -- {extra_args}',
 			creationflags=subprocess.CREATE_NEW_CONSOLE)
 	except OSError:
-		# TODO: blender not found warning
-		print("blender not found warning")
+		print("Could not find 'blender'. Make sure the executable is in your PATH.")
 		return None
 
 
@@ -54,20 +53,17 @@ def run_task(task : taskfile.Task):
 	elif task.type == taskfile.TaskType.BAKE:
 		return bake(task.args)
 	else:
-		# TODO: Log a warning of some kind
-		print('some warning 1')
+		print(f'Error: Unknown task type: {task.type}')
 		return None
 
 def render_animation(args):
-	splitargs = args.split(' ')
-	filename = splitargs[0]
+	filename = args[0]
 	# Arg 0: whether to render an animation (if false, then this is a still image)
 	return launch_blender(filename, brender_path, '1')
 	
 
 def render_still(args):
-	splitargs = args.split(' ')
-	filename = splitargs[0]
+	filename = args[0]
 	# Arg 0: whether to render an animation (if false, then this is a still image)
 	return launch_blender(filename, brender_path, '0')
 

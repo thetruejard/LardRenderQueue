@@ -1,6 +1,7 @@
 
 import threading
 import pathlib
+import json
 
 '''
 taskfile
@@ -48,7 +49,7 @@ class Task:
 		self.args = args
 
 	def __str__(self):
-		return self.type + ' ' + self.args
+		return self.type + ' ' + json.dumps(self.args)
 
 	def desc(self):
 		return f'{TaskType.get_name(self.type)}\n\t- File: {self.args}'
@@ -57,7 +58,7 @@ class Task:
 		if line[-1] == '\n':
 			line = line[:-1]
 		split = line.split(sep=' ', maxsplit=1)
-		return Task(split[0], split[1])
+		return Task(split[0], json.loads(split[1]))
 
 class CompletedTask(Task):
 	# TODO: add more args (such as total time, etc.)

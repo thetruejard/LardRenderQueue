@@ -14,18 +14,18 @@ lan
 When working over LAN, the script can run in one of 3 states:
 1. Client: the user sends and receives blend files and output files by connecting to a server
 2. Server: the script receives tasks from a Client, renders them, and then returns the result
-3. Slave: the script shares a task list with a Server and helps it render
+3. Worker: the script shares a task list with a Server and helps it render
 If the current script instance is running as a server, a thread is created to monitor connections
 
---- A Client/Slave -> Server connection goes as follows:
+--- A Client/Worker -> Server connection goes as follows:
 1. C/S -> Server: Send a header with basic version/state info
 2. Server -> C/S: Send a response either accepting or refusing the connection
---- If accepted, execution depends on whether a Client or Slave is involved
+--- If accepted, execution depends on whether a Client or Worker is involved
 --- Client:
 3. C -> Server: Send the request to the server, as well as a header defining all supplementary files (if any)
 4. Server -> C: Send a response either accepting or refusing the request and supplementary files
 5. C -> Server: If supplementary files are needed, send them
---- Slave:
+--- Worker:
 # TODO
 ---
 6. All sockets are closed
@@ -37,7 +37,7 @@ class LANState:
 	NONE = 'n'
 	CLIENT = 'c'
 	SERVER = 's'
-	SLAVE = 'l'
+	WORKER = 'l'
 
 current_LAN_state = LANState.NONE
 current_LAN_ip_port = (None, None)
@@ -59,7 +59,7 @@ class Comm:
 
 
 class RequestType:
-	# Just establish a connection between a Client/Slave and a Server
+	# Just establish a connection between a Client/Worker and a Server
 	ESTABLISH = 'est'
 	# Send a task request to be queued on the server
 	ADD_TASK = 'addtask'
@@ -69,7 +69,7 @@ class RequestType:
 
 
 
-# The header, i.e. the first thing sent from a client or slave to a server
+# The header, i.e. the first thing sent from a client or worker to a server
 class Header:
 	def __init__(self):
 		self.version = M.version
@@ -208,7 +208,7 @@ def make_server(port=None):
 	print(f"Port: {current_LAN_ip_port[1]}\n" + M.get_col('RESET'))
 	pass
 
-def make_slave(ip, port):
+def make_worker(ip, port):
 	global current_LAN_state
 	global current_LAN_ip_port
 	global current_socket
@@ -297,7 +297,7 @@ def receive_file(socket : socket.socket, destination : Path):
 		send_data(socket, Comm.REFUSE)
 		return False
 	send_data(socket, Comm.ACCEPT)
-	amt = 0;
+	amt = 0
 	with open(destination, 'wb') as f:
 		while True:
 			data = receive_data(socket, min(Comm.BUFFER_LENGTH, size - amt))
