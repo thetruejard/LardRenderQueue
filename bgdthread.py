@@ -2,6 +2,7 @@
 import threading
 import subprocess
 import ctypes
+import time
 
 import msgqueue as msgq
 import taskfile
@@ -28,6 +29,7 @@ class BgdThread(threading.Thread):
 		self.subp = None
 		self.last_exit_code = 0
 		self.waiting_thread = None
+		self.start_time = -1
 
 	# The function used by the waiting thread
 	def wait_func(self):
@@ -64,6 +66,7 @@ class BgdThread(threading.Thread):
 	def launch_task(self, task):
 		taskfile.make_task_current(task)
 		self.subp = tasks.run_task(task)
+		self.start_time = time.perf_counter()
 		if self.subp is not None:
 			self.waiting_thread = threading.Thread(target=BgdThread.wait_func, args=[self])
 			self.waiting_thread.start()
@@ -88,22 +91,37 @@ class BgdThread(threading.Thread):
 	def quit(self):
 		self.done = True
 		# End the subprocess if necessary
+		task = taskfile.get_current_task()
+		if task is not None:
+			self.stop_timer(task)
+			# Rewrite the current task file, since the time changed
+			taskfile.make_task_current(task)
 		self.end_subprocess()
 
 	def skip(self):
+		task = taskfile.get_current_task()
+		if task is not None:
+			self.stop_timer(task)
 		self.end_subprocess()
-		print('skip')
 		taskfile.clear_current_task()
 
 	def complete(self):
 		self.subp = None
 		task = taskfile.get_current_task()
+		self.stop_timer(task)
 		taskfile.add_completed(taskfile.CompletedTask(task))
 		taskfile.clear_current_task()
 
 	def failed(self):
 		self.subp = None
-		print('failed')
+		print('Failed')
 		task = taskfile.get_current_task()
+		self.stop_timer(task)
 		taskfile.add_failed(taskfile.FailedTask(task, self.last_exit_code))
 		taskfile.clear_current_task()
+
+
+	def stop_timer(self, task):
+		end_time = time.perf_counter()
+		task.time += end_time - self.start_time
+		self.start_time = -1

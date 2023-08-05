@@ -2,6 +2,8 @@
 import threading
 import pathlib
 import json
+from datetime import timedelta
+import os
 
 '''
 taskfile
@@ -17,17 +19,17 @@ There are 2 files that this module interfaces with:
 
 # The name of the file in which tasks are stored. The current working directory is used
 # If this is changed, the .gitignore file must be updated too (see bottom of .gitignore)
-tasklist_filename = 'tasklist.dat'
+tasklist_filename = 'tasks/tasklist.txt'
 # Each task in the taskfile is one line of text followed by a newline
 
 # The name of the file in which info about the current task is stored. The cwd is used
-currenttask_filename = 'currenttask.dat'
+currenttask_filename = 'tasks/currenttask.txt'
 
 # The name of the file in which the list of completed tasks is stored. The cwd is used
-completed_filename = 'completed.dat'
+completed_filename = 'tasks/completed.txt'
 
 # The name of the file in which the list of failed tasks is stored. The cwd is used
-failed_filename = 'failed.dat'
+failed_filename = 'tasks/failed.txt'
 
 
 class TaskType:
@@ -44,31 +46,36 @@ class TaskType:
 
 
 class Task:
-	def __init__(self, type, args : str):
+	def __init__(self, type, args : str, time : float = 0):
 		self.type = type
 		self.args = args
+		self.time = time
+	
+	def time_str(self):
+		return str(timedelta(seconds=round(self.time)))
 
 	def __str__(self):
-		return self.type + ' ' + json.dumps(self.args)
+		return f'{self.type} {self.time} ' + json.dumps(self.args)
 
 	def desc(self):
-		return f'{TaskType.get_name(self.type)}\n\t- File: {self.args}'
+		return f'{TaskType.get_name(self.type)}' + \
+			f'\n\t- Elapsed: {self.time_str()}' + \
+			f'\n\t- File: {self.args[0]}'
 
 	def parse(line):
 		if line[-1] == '\n':
 			line = line[:-1]
-		split = line.split(sep=' ', maxsplit=1)
-		return Task(split[0], json.loads(split[1]))
+		split = line.split(sep=' ', maxsplit=2)
+		return Task(split[0], json.loads(split[2]), float(split[1]))
 
 class CompletedTask(Task):
-	# TODO: add more args (such as total time, etc.)
 	def __init__(self, task):
-		super().__init__(task.type, task.args)
+		super().__init__(task.type, task.args, task.time)
 
 class FailedTask(Task):
 	# TODO: add more args (such as time until fail, etc.)
 	def __init__(self, task, exit_code):
-		super().__init__(task.type, task.args)
+		super().__init__(task.type, task.args, task.time)
 		self.exit_code = exit_code
 
 	def __str__(self):
@@ -103,18 +110,19 @@ def write_list(filename, elements : list):
 # Utility: returns a list of type from the given file using type.parse() separated by newlines
 # If num is positive, only reads the first num elements
 def read_list(filename, type, num=-1) -> list:
-	lock_disk()
 	elements = []
-	try:
-		with open(filename, 'r') as f:
-			lines = f.readlines()
-		if len(lines) > num > 0:
-			lines = lines[:num]
-		for line in lines:
-			elements.append(type.parse(line))
-	except:
-		pass
-	unlock_disk()
+	if os.path.exists(filename):
+		lock_disk()
+		try:
+			with open(filename, 'r') as f:
+				lines = f.readlines()
+			if len(lines) > num > 0:
+				lines = lines[:num]
+			for line in lines:
+				elements.append(type.parse(line))
+		except Exception as e:
+			print(f'Exception while loading task list "{filename}": {e}')
+		unlock_disk()
 	return elements
 
 
@@ -166,7 +174,7 @@ def next_task():
 		return None
 	next = tasks[0]
 	tasks = tasks[1:]
-	write_tasks(tasks);
+	write_tasks(tasks)
 	unlock_disk()
 	return next
 

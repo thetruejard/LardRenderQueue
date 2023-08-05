@@ -3,6 +3,7 @@ import os
 import sys
 import atexit
 import shlex
+import time
 
 import bgdthread as bgd
 import msgqueue as msgq
@@ -147,6 +148,8 @@ def status(args):
 	failed = taskfile.read_failed()
 	# TODO: completed and failed tasks
 	if current is not None:
+		# Correct the time, since it has changed since the task started running
+		current.time += time.perf_counter() - bgd_thread.start_time
 		print(Color.YELLOW + "===== Current Task =====")
 		print(current.desc())
 	print('')
@@ -242,7 +245,7 @@ def disconnect(args):
 
 
 @command('', ['q', 'exit'], 'Ends the background thread and quits the script')
-def quit(args=''):
+def quit(args=None):
 	if args is not None:
 		invalid_args('quit')
 		return
@@ -311,7 +314,11 @@ while not done:
 		cmdname = command_aliases.get(cmdalias, None)
 		cmd = commands.get(cmdname, None) if cmdname != None else None
 		if cmd != None:
-			cmd.func(None if len(splitline) < 2 else shlex.split(splitline[1].strip()))
+			try:
+				args = None if len(splitline) < 2 else shlex.split(splitline[1].strip())
+			except ValueError:
+				raise EOFError() # shlex error: just pass to bottom
+			cmd.func(args)
 		else:
 			print(Color.RED + f"Unknown command '{cmdalias}'")
 			print("Type 'help' for a list of available commands")

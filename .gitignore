@@ -366,5 +366,4 @@ FodyWeavers.xsd
 
 # CUSTOM - NOT GENERATED
 
-# The extension used for script-generated files
-*.dat
+tasks/
