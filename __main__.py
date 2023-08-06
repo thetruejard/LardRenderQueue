@@ -276,17 +276,12 @@ def skip(args):
 			return
 
 
-
-# Start
-
 def print_command_info(name, cmd : Command):
 	print(Color.RESET + "\t", name, cmd.params)
 	splittooltip = cmd.tooltip.splitlines()
 	for line in splittooltip:
 		print(Color.CYAN + "\t\t-", line)
-	if len(cmd.aliases) < 1:
-		print(Color.BLUE + "\t\tNo aliases")
-	else:
+	if len(cmd.aliases) >= 1:
 		print(Color.BLUE + "\t\tAliases: ", str(cmd.aliases)[1:-1])
 
 def print_header_info():
@@ -296,35 +291,39 @@ def print_header_info():
 	for name, cmd in commands.items():
 		print_command_info(name, cmd)
 	print(Color.YELLOW + "=========================\n\n")
-print_header_info()
 
 
-bgd_thread.start()
+if __name__ == '__main__':
+	print_header_info()
 
+	headless = (len(sys.argv) > 1 and sys.argv[1] == '--headless')
 
-# done is defined above and set to True in quit()
-while not done:
-	print(Color.RESET + "> ", end='')
-	try:
-		line = input().strip()
-		splitline = line.split(' ', 1)
-		if splitline[0] == '':
-			continue
-		cmdalias = splitline[0].strip()
-		cmdname = command_aliases.get(cmdalias, None)
-		cmd = commands.get(cmdname, None) if cmdname != None else None
-		if cmd != None:
-			try:
-				args = None if len(splitline) < 2 else shlex.split(splitline[1].strip())
-			except ValueError:
-				raise EOFError() # shlex error: just pass to bottom
-			cmd.func(args)
-		else:
-			print(Color.RED + f"Unknown command '{cmdalias}'")
-			print("Type 'help' for a list of available commands")
-	except EOFError:
-		print(Color.RED + "Error parsing command")
-		
+	if not headless:
+		bgd_thread.start()
 
-bgd_thread.join()
-print(Color.YELLOW + "\nScript execution has stopped" + Color.RESET)
+	# done is defined above and set to True in quit()
+	while not done:
+		print(Color.RESET + "> ", end='')
+		try:
+			line = input().strip()
+			splitline = line.split(' ', 1)
+			if splitline[0] == '':
+				continue
+			cmdalias = splitline[0].strip()
+			cmdname = command_aliases.get(cmdalias, None)
+			cmd = commands.get(cmdname, None) if cmdname != None else None
+			if cmd != None:
+				try:
+					args = None if len(splitline) < 2 else shlex.split(splitline[1].strip())
+				except ValueError:
+					raise EOFError() # shlex error: just pass to bottom
+				cmd.func(args)
+			else:
+				print(Color.RED + f"Unknown command '{cmdalias}'")
+				print("Type 'help' for a list of available commands")
+		except EOFError:
+			print(Color.RED + "Error parsing command")
+
+	if not headless:
+		bgd_thread.join()
+	print(Color.YELLOW + "\nScript execution has stopped" + Color.RESET)
