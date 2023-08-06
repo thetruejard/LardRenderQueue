@@ -190,9 +190,9 @@ def clear(args):
 		taskfile.clear_tasks()
 
 
-@command('<IPv4> <port>', [],
-'''Connects as a client to a server at IPv4 over port
-Run 'server' on the server to retrieve these values''')
+#@command('<IPv4> <port>', [],
+#'''Connects as a client to a server at IPv4 over port
+#Run 'server' on the server to retrieve these values''')
 def client(args):
 	if args is None or len(args) != 2:
 		invalid_args('client')
@@ -204,10 +204,10 @@ def client(args):
 		return
 	lan.make_client(ip, port)
 
-@command('[port]', [],
-'''Establishes this script instance as a server that other instances can connect to
-If no port is specified, the script will let the OS select a port
-If this instance is already a server, the current ip and port are retrieved''')
+#@command('[port]', [],
+#'''Establishes this script instance as a server that other instances can connect to
+#If no port is specified, the script will let the OS select a port
+#If this instance is already a server, the current ip and port are retrieved''')
 def server(args):
 	if args is not None:
 		if len(args) > 1:
@@ -222,9 +222,9 @@ def server(args):
 		port = None
 	lan.make_server(port)
 
-@command('<IPv4> <port>', [],
-'''Connects as a worker to a server at IPv4 over port
-Run 'server' on the server to retrieve these values''')
+#@command('<IPv4> <port>', [],
+#'''Connects as a worker to a server at IPv4 over port
+#Run 'server' on the server to retrieve these values''')
 def worker(args):
 	if args is None or len(args) != 2:
 		invalid_args('worker')
@@ -236,7 +236,7 @@ def worker(args):
 		return
 	lan.make_worker(ip, port)
 
-@command('', [], 'Disconnects the current LAN state (client/server/worker), if any')
+#@command('', [], 'Disconnects the current LAN state (client/server/worker), if any')
 def disconnect(args):
 	if args is not None:
 		invalid_args('disconnect')
